@@ -15,7 +15,7 @@ def mandelbrot(c):
 
 
 def main():
-    f = field(128)
+    f = field(1024)
     nx, ny = f.shape
     m = np.empty(shape=f.shape, dtype=np.int32)
     for i in range(nx):
