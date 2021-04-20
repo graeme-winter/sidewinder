@@ -7,12 +7,24 @@ from matplotlib import pyplot as plt
 
 from numba import jit
 
-from __init__ import setup, mask, data, shape
+from __init__ import setup, mask, data, shape, rettilb
 
 
-def thresholded_dispersion(image, mask, sigma_s=3):
+def kernel_summation(data, knl=7):
+    """Return the summed SAT such that reading off out[i,j] gives you the
+    sum of data in a kernel box around i,j. Assumes data were already padded
+    by (kernel - 1) / 2 pixels."""
+
+    s = data.cumsum(axis=0).cumsum(axis=1)
+    return s[knl:, knl:] + s[:-knl, :-knl] - s[:-knl, knl:] - s[knl:, :-knl]
+
+
+def thresholded_dispersion(image, mask, sigma_s=3, knl=7):
     """Return a boolean map the same shape as image, mask which contains 1 for
-    signal pixels, 0 for background / masked."""
+    signal pixels, 0 for background / masked. Kernel = 7 implied by already
+    padding out matrix by 3 on all edges."""
+
+    pad = (knl - 1) // 2
 
     # mask out the bad pixels
     image = image * mask
@@ -30,40 +42,25 @@ def thresholded_dispersion(image, mask, sigma_s=3):
     for module in range(32):
 
         # grab the data
-        _image = image[module * ny : module * ny + ny, :].astype(np.uint32)
-        _mask = mask[module * ny : module * ny + ny, :].astype(np.uint32)
+        _image = np.pad(
+            image[module * ny : module * ny + ny, :].astype(np.uint32), (pad + 1, pad)
+        )
+        _mask = np.pad(
+            mask[module * ny : module * ny + ny, :].astype(np.uint32), (pad + 1, pad)
+        )
 
         # compute interal images
-        isum = _image.cumsum(axis=0).cumsum(axis=1)
-        isum2 = (_image ** 2).cumsum(axis=0).cumsum(axis=1)
-        nsum = _mask.cumsum(axis=0).cumsum(axis=1)
+        isum = kernel_summation(_image, knl)
+        isum2 = kernel_summation(_image ** 2, knl)
+        nsum = kernel_summation(_mask, knl)
 
-        # compute dispersion - must be able to find less dumb way than this
-        for i in range(3, ny - 3):
-            for j in range(3, nx - 3):
-                n = (
-                    nsum[i + 3, j + 3]
-                    + nsum[i - 3, j - 3]
-                    - nsum[i - 3, j + 3]
-                    - nsum[i + 3, j - 3]
-                )
-                I = (
-                    isum[i + 3, j + 3]
-                    + isum[i - 3, j - 3]
-                    - isum[i - 3, j + 3]
-                    - isum[i + 3, j - 3]
-                )
-                I2 = (
-                    isum2[i + 3, j + 3]
-                    + isum2[i - 3, j - 3]
-                    - isum2[i - 3, j + 3]
-                    - isum2[i + 3, j - 3]
-                )
-                if n > 1 and I > 0:
-                    mean = I / n
-                    variance = (I2 - I ** 2 / n) / n
-                    if (variance / mean) > 1 + sigma_s * math.sqrt(2 / (n - 1)):
-                        signal[module * ny + i, j] = 1
+        mean = isum / nsum
+        variance = (isum2 - isum ** 2 / nsum) / nsum
+
+        signal[module * ny : module * ny + ny, :][
+            (variance / mean) > 1 + sigma_s * np.sqrt(2 / (nsum - 1))
+        ] = 1
+    signal = signal * mask
 
     return signal
 
@@ -82,7 +79,9 @@ def simple():
     signal = thresholded_dispersion(d, m)
     t1 = time.time()
 
-    plt.imshow(signal)
+    signal_image = rettilb(signal)
+
+    plt.imshow(signal_image, cmap="Greys")
     plt.show()
 
 
