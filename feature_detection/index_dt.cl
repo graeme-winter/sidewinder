@@ -1,10 +1,7 @@
 __kernel void index_dt(const __global unsigned short *image,
-                       const __global unsigned short *mask,
-                       const __local unsigned short *_image,
-                       const __local unsigned short *_mask, const int n_modules,
-                       const int height, const int width, const int kernel,
-                       const float sigma_s,
-                       const __global unsigned char *signal) {
+                       const __global unsigned char *mask, const int height,
+                       const int width, const int knl_width,
+                       const float sigma_s, __global unsigned char *signal) {
 
   // pixel in global address space
   int i = get_global_id(0);
@@ -14,9 +11,7 @@ __kernel void index_dt(const __global unsigned short *image,
     return;
   }
 
-  int knl = (kernel - 1) / 2;
-
-  int sum, sum2, n;
+  int knl = (knl_width - 1) / 2;
 
   // pixel in local address space
   int k = get_local_id(0);
@@ -25,22 +20,28 @@ __kernel void index_dt(const __global unsigned short *image,
   int nh = get_local_size(0);
   int nw = get_local_size(1);
 
+  // 10 lines in local buffer
+  __local unsigned short _image[1028 * 10];
+  __local unsigned char _mask[1028 * 10];
+
+  // TODO deal with module boundaries
+
   if (k == l == 0) {
-    // it is my job to copy the data +/- kernel size over from __global
+    // it is my job to copy the data +/- knl_width size over from __global
     for (int _i = 0; _i < nh + 2 * knl; i++) {
       int row = i + _i - knl;
       if (row < 0) {
-        for (_j = 0; _j < width; _j++) {
+        for (int _j = 0; _j < width; _j++) {
           _image[_i * width + _j] = 0;
           _mask[_i * width + _j] = 0;
         }
       } else if (row >= height) {
-        for (_j = 0; _j < width; _j++) {
+        for (int _j = 0; _j < width; _j++) {
           _image[_i * width + _j] = 0;
           _mask[_i * width + _j] = 0;
         }
       } else {
-        for (_j = 0; _j < width; _j++) {
+        for (int _j = 0; _j < width; _j++) {
           _image[_i * width + _j] = image[row * width + j];
           _mask[_i * width + _j] = mask[row * width + j];
         }
@@ -54,11 +55,11 @@ __kernel void index_dt(const __global unsigned short *image,
   int sum2 = 0;
   int n = 0;
 
-  for (int _i = -knl; _i < _knl + 1; _i++) {
+  for (int _i = -knl; _i < knl + 1; _i++) {
     if ((_i < 0) || (_i >= nh)) {
       continue;
     }
-    for (int _j = -knl; _j < _knl + 1; _j++) {
+    for (int _j = -knl; _j < knl + 1; _j++) {
       if ((_j < 0) || (_j >= nw)) {
         continue;
       }
