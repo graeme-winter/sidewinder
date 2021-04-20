@@ -13,6 +13,37 @@ N_FAST = 4
 N_SLOW = 8
 
 
+def rettilb(i_in):
+    """Reverse the blitter operation, return an image from a stack of module
+    images."""
+
+    i_out = -1 * np.ones(
+        shape=(
+            N_SLOW * MOD_SLOW + (N_SLOW - 1) * GAP_SLOW,
+            N_FAST * MOD_FAST + (N_FAST - 1) * GAP_FAST,
+        ),
+        dtype=i_in.dtype,
+    )
+
+    for n in range(N_SLOW * N_FAST):
+
+        # sink
+        s, f = divmod(n, N_FAST)
+        s0 = s * (MOD_SLOW + GAP_SLOW)
+        s1 = s0 + MOD_SLOW
+        f0 = f * (MOD_FAST + GAP_FAST)
+        f1 = f0 + MOD_FAST
+
+        # source
+        _s0 = n * (MOD_SLOW + 6) + 3
+        _s1 = _s0 + MOD_SLOW
+        _f0 = 3
+        _f1 = _f0 + MOD_FAST
+        i_out[s0:s1, f0:f1] = i_in[_s0:_s1, _f0:_f1]
+
+    return i_out
+
+
 def blitter(i_in):
     """Read the data from the 32 modules of the input image across to a
     big array with the 32 modules stacked on top of one another with 3 pixel
