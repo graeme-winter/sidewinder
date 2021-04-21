@@ -64,6 +64,7 @@ def main():
 
     d = data(0)
 
+    t0 = time.time()
     _image = cl.Buffer(
         context, cl.mem_flags.READ_ONLY, d.size * np.dtype(d.dtype).itemsize
     )
@@ -74,24 +75,33 @@ def main():
         context, cl.mem_flags.WRITE_ONLY, m.size * np.dtype(m.dtype).itemsize
     )
 
-    # copy input
-    cl.enqueue_copy(queue, _image, d)
+    # mask same for all images -> only copy the once
     cl.enqueue_copy(queue, _mask, m)
 
-    # TODO consider 32 modules as 32 images
+    # spot find on all the images...
+    for image in range(nx):
+        print(image)
+        d = data(image)
 
-    # actual calculation - TODO consider waiting for event which is arrival
-    # of data in memory (so make transfers above async)
-    # re-arrange groups to have the longest axis _first_ - N.B. this has
-    # nothing to do with memory (and is the reversed order) - also make the
-    # "fast" direction slightly longer to allow nice divisors to make for a
-    # boxy-ish workgroup
-    index_dt(
-        queue, (1040, 512, 32), (26, 8, 1), _image, _mask, 512, 1028, 7, 3.0, _signal
-    )
+        # copy input
+        cl.enqueue_copy(queue, _image, d)
 
-    signal = np.empty(shape=m.shape, dtype=m.dtype)
-    cl.enqueue_copy(queue, signal, _signal)
+        # actual calculation - TODO consider waiting for event which is
+        # arrival of data in memory (so make transfers above async)
+        # re-arrange groups to have the longest axis _first_ - N.B. this has
+        # nothing to do with memory (and is the reversed order)
+        # "fast" direction slightly longer to allow nice divisors to make
+        # for a boxy-ish workgroup
+        work = (1040, 512, 32)
+        group = (26, 8, 1)
+        index_dt(queue, work, group, _image, _mask, 512, 1028, 7, 3.0, _signal)
+
+        signal = np.empty(shape=m.shape, dtype=m.dtype)
+        cl.enqueue_copy(queue, signal, _signal)
+
+    t1 = time.time()
+
+    print(t1 - t0)
 
     signal_image = rettilb(signal)
     plt.imshow(signal_image, cmap="Greys")
