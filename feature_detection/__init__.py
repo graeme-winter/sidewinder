@@ -35,9 +35,9 @@ def rettilb(i_in):
         f1 = f0 + MOD_FAST
 
         # source
-        _s0 = n * (MOD_SLOW + 6) + 3
+        _s0 = n * MOD_SLOW
         _s1 = _s0 + MOD_SLOW
-        _f0 = 3
+        _f0 = 0
         _f1 = _f0 + MOD_FAST
         i_out[s0:s1, f0:f1] = i_in[_s0:_s1, _f0:_f1]
 
@@ -55,7 +55,7 @@ def blitter(i_in):
     )
 
     i_out = np.zeros(
-        shape=((MOD_SLOW + 6) * (N_SLOW * N_FAST), MOD_FAST + 6), dtype=i_in.dtype
+        shape=(MOD_SLOW * (N_SLOW * N_FAST), MOD_FAST), dtype=i_in.dtype
     )
 
     for n in range(N_SLOW * N_FAST):
@@ -68,9 +68,9 @@ def blitter(i_in):
         f1 = f0 + MOD_FAST
 
         # sink
-        _s0 = n * (MOD_SLOW + 6) + 3
+        _s0 = n * MOD_SLOW
         _s1 = _s0 + MOD_SLOW
-        _f0 = 3
+        _f0 = 0
         _f1 = _f0 + MOD_FAST
         i_out[_s0:_s1, _f0:_f1] = i_in[s0:s1, f0:f1]
 
