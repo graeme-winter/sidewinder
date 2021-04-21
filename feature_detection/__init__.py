@@ -54,9 +54,7 @@ def blitter(i_in):
         N_FAST * MOD_FAST + (N_FAST - 1) * GAP_FAST,
     )
 
-    i_out = np.zeros(
-        shape=(MOD_SLOW * (N_SLOW * N_FAST), MOD_FAST), dtype=i_in.dtype
-    )
+    i_out = np.zeros(shape=(MOD_SLOW * (N_SLOW * N_FAST), MOD_FAST), dtype=i_in.dtype)
 
     for n in range(N_SLOW * N_FAST):
 
