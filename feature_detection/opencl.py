@@ -42,10 +42,14 @@ def main():
     context = cl.Context(devices=[devices[device]])
     queue = cl.CommandQueue(context)
 
+    # TODO use these to decide what "shape" to make the work groups
+    # and add something which allows those shapes to be replaced in the
+    # openCL source code
     max_group = devices[device].max_work_group_size
     max_item = devices[device].max_work_item_sizes
 
-    program = cl.Program(context, open("index_dt.cl", "r").read()).build()
+    cl_text = open("index_dt.cl", "r").read().replace("L_BLOCK", "448")
+    program = cl.Program(context, cl_text).build()
     index_dt = program.index_dt
 
     index_dt.set_scalar_arg_dtypes(

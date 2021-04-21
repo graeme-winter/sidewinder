@@ -28,12 +28,11 @@ __kernel void index_dt(const __global unsigned short *image,
 
   int knl = (knl_width - 1) / 2;
 
-  // 8+6 lines in local buffer TODO reshape to be squarer and pass in as arg
-  // each line is 26 pixels + 6 padding
-  __local unsigned short _image[448];
-  __local unsigned char _mask[448];
+  // 8+6 lines in local buffer: each line is 26 pixels + 6 padding
+  __local unsigned short _image[L_BLOCK];
+  __local unsigned char _mask[L_BLOCK];
 
-  // loop variables - will always be consistent here that we have i, j, k where
+  // loop variables - will always be consistent here that we have i, j, m where
   // m is the module number, i is the row and j is the pixel number - in this
   // address space I am working in global coordinates for the initial offset
   // and then local coordinates for the actual calculation - nota bene.
@@ -47,20 +46,20 @@ __kernel void index_dt(const __global unsigned short *image,
       int row = gid[1] + i - knl;
       if (row < 0 || row >= height) {
         for (int j = 0; j < nj; j++) {
-          _image[row * nj + j] = 0;
-          _mask[row * nj + j] = 0;
+          _image[i * nj + j] = 0;
+          _mask[i * nj + j] = 0;
         }
         continue;
       }
       for (int j = 0; j < nj; j++) {
         int pxl = gid[0] + j - knl;
         if (pxl < 0 || pxl >= width) {
-          _image[row * nj + j] = 0;
-          _mask[row * nj + j] = 0;
+          _image[i * nj + j] = 0;
+          _mask[i * nj + j] = 0;
         } else {
           int m = gid[2];
-          _image[row * nj + j] = image[m * width * height + row * width + pxl];
-          _mask[row * nj + j] = mask[m * width * height + row * width + pxl];
+          _image[i * nj + j] = image[m * width * height + row * width + pxl];
+          _mask[i * nj + j] = mask[m * width * height + row * width + pxl];
         }
       }
     }
@@ -76,6 +75,13 @@ __kernel void index_dt(const __global unsigned short *image,
   // now I am working with respect to lid i.e. +/- knl around lid in the
   // local address space - because the local memory is padded this is
   // guaranteed to be OK
+
+  if (1 == 0) {
+    int gpxl = gid[2] * width * height + gid[1] * width + gid[0];
+    int pxl = (lid[1] + knl) * nj + lid[0] + knl;
+    signal[gpxl] = _image[pxl] + 255;
+    return;
+  }
 
   for (int i = -knl; i < knl + 1; i++) {
     for (int j = -knl; j < knl + 1; j++) {
