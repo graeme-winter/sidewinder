@@ -3,7 +3,6 @@ import time
 import math
 
 import numpy as np
-from matplotlib import pyplot as plt
 import pyopencl as cl
 
 from __init__ import setup, mask, data, shape, rettilb
@@ -79,8 +78,7 @@ def main():
     cl.enqueue_copy(queue, _mask, m)
 
     # spot find on all the images...
-    for image in range(nx):
-        print(image)
+    for image in range(nz):
         d = data(image)
 
         # copy input
@@ -103,9 +101,6 @@ def main():
 
     print(t1 - t0)
 
-    signal_image = rettilb(signal)
-    plt.imshow(signal_image, cmap="Greys")
-    plt.show()
 
 
 main()
