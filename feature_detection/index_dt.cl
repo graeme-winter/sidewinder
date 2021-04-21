@@ -68,20 +68,13 @@ __kernel void index_dt(const __global unsigned short *image,
   // synchronise threads so all have same view of local memory
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  int sum = 0;
-  int sum2 = 0;
-  int n = 0;
+  float sum = 0;
+  float sum2 = 0;
+  float n = 0;
 
   // now I am working with respect to lid i.e. +/- knl around lid in the
   // local address space - because the local memory is padded this is
   // guaranteed to be OK
-
-  if (1 == 0) {
-    int gpxl = gid[2] * width * height + gid[1] * width + gid[0];
-    int pxl = (lid[1] + knl) * nj + lid[0] + knl;
-    signal[gpxl] = _image[pxl] + 255;
-    return;
-  }
 
   for (int i = -knl; i < knl + 1; i++) {
     for (int j = -knl; j < knl + 1; j++) {
@@ -101,18 +94,18 @@ __kernel void index_dt(const __global unsigned short *image,
     return;
   }
 
-  float mean = (float)sum / (float)n;
-  float variance =
-      ((float)sum2 - ((float)sum * (float)sum / (float)n)) / (float)n;
+  float mean = sum / n;
+  float variance = (sum2 - (sum * sum / n)) / n;
 
   if (mean <= 0) {
     signal[gpxl] = 0;
     return;
   }
 
-  if ((variance / mean) > (1 + sigma_s * sqrt((float) (2.0 / (n - 1.0))))) {
+  if ((variance / mean) > (1 + sigma_s * sqrt(2.0 / (n - 1.0)))) {
     signal[gpxl] = 1;
   } else {
     signal[gpxl] = 0;
   }
+  return;
 }
