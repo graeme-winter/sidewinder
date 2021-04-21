@@ -1,7 +1,12 @@
 __kernel void index_dt(const __global unsigned short *image,
-                       const __global unsigned char *mask, const int height,
-                       const int width, const int knl_width,
-                       const float sigma_s, __global unsigned char *signal) {
+                       const __global unsigned char *mask,
+		       __local unsigned short *_image,
+		       __local unsigned char *_mask,
+		       const int height,
+                       const int width,
+		       const int knl_width,
+                       const float sigma_s,
+		       __global unsigned char *signal) {
 
   // pixel in global address space - N.B. because reasons the work
   // assignment is _not_ ordered in the same way as the memory.
@@ -27,10 +32,6 @@ __kernel void index_dt(const __global unsigned short *image,
   lsz[2] = get_local_size(2);
 
   int knl = (knl_width - 1) / 2;
-
-  // 8+6 lines in local buffer: each line is 26 pixels + 6 padding
-  __local unsigned short _image[L_BLOCK];
-  __local unsigned char _mask[L_BLOCK];
 
   // loop variables - will always be consistent here that we have i, j, m where
   // m is the module number, i is the row and j is the pixel number - in this
