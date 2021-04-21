@@ -110,7 +110,7 @@ __kernel void index_dt(const __global unsigned short *image,
     return;
   }
 
-  if ((variance / mean) > (1 + sigma_s * sqrt(2.0 / (n - 1.0)))) {
+  if ((variance / mean) > (1 + sigma_s * sqrt((float) (2.0 / (n - 1.0))))) {
     signal[gpxl] = 1;
   } else {
     signal[gpxl] = 0;
