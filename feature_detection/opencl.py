@@ -102,8 +102,7 @@ def main():
 
     t1 = time.time()
 
-    print(t1 - t0)
-
+    print(f"{nz} images took {(t1 - t0):.2f}s -> {nz / (t1 - t0):.1f}/s")
 
 
 main()
