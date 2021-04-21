@@ -77,6 +77,9 @@ def main():
     # mask same for all images -> only copy the once
     cl.enqueue_copy(queue, _mask, m)
 
+    # likewise output buffer
+    signal = np.empty(shape=m.shape, dtype=m.dtype)
+
     # spot find on all the images...
     for image in range(nz):
         d = data(image)
@@ -92,9 +95,9 @@ def main():
         # for a boxy-ish workgroup
         work = (1040, 512, 32)
         group = (26, 8, 1)
-        index_dt(queue, work, group, _image, _mask, 512, 1028, 7, 3.0, _signal)
+        evt = index_dt(queue, work, group, _image, _mask, 512, 1028, 7, 3.0, _signal)
+        evt.wait()
 
-        signal = np.empty(shape=m.shape, dtype=m.dtype)
         cl.enqueue_copy(queue, signal, _signal)
 
     t1 = time.time()
