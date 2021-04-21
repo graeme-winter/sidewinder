@@ -21,8 +21,7 @@ def kernel_summation(data, knl=7):
 
 def thresholded_dispersion(image, mask, sigma_s=3, knl=7):
     """Return a boolean map the same shape as image, mask which contains 1 for
-    signal pixels, 0 for background / masked. Kernel = 7 implied by already
-    padding out matrix by 3 on all edges."""
+    signal pixels, 0 for background / masked."""
 
     pad = (knl - 1) // 2
 
