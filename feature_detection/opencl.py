@@ -3,6 +3,7 @@ import time
 import math
 
 import numpy as np
+from matplotlib import pyplot as plt
 import pyopencl as cl
 
 from __init__ import setup, mask, data, shape, rettilb
@@ -15,7 +16,7 @@ def get_devices():
     return result
 
 
-def help():
+def _help():
     devices = get_devices()
     print("Available devices:")
     for j, dev in enumerate(devices):
@@ -31,7 +32,7 @@ def help():
 
 def main():
     if len(sys.argv) != 3:
-        help()
+        _help()
         sys.exit(1)
 
     filename = sys.argv[1]
@@ -40,6 +41,16 @@ def main():
     devices = get_devices()
     context = cl.Context(devices=[devices[device]])
     queue = cl.CommandQueue(context)
+
+    max_group = devices[device].max_work_group_size
+    max_item = devices[device].max_work_item_sizes
+
+    program = cl.Program(context, open("index_dt.cl", "r").read()).build()
+    index_dt = program.index_dt
+
+    index_dt.set_scalar_arg_dtypes(
+        [None, None, np.int32, np.int32, np.int32, np.float32, None]
+    )
 
     setup(filename)
 
@@ -59,21 +70,26 @@ def main():
         context, cl.mem_flags.WRITE_ONLY, m.size * np.dtype(m.dtype).itemsize
     )
 
-    program = cl.Program(context, open("index_dt.cl", "r").read()).build()
-    index_dt = program.index_dt
-
     # copy input
     cl.enqueue_copy(queue, _image, d)
     cl.enqueue_copy(queue, _mask, m)
 
-    # actual calculation
-    index_dt(queue, d.shape, (4, d.shape[1]), _image, _mask, ny, nx, 7, 3.0, _signal)
+    # TODO consider 32 modules as 32 images
 
-    signal = np.empty(shape=mask.shape, dtype=mask.dtype)
+    # actual calculation - TODO consider waiting for event which is arrival
+    # of data in memory (so make transfers above async)
+    # re-arrange groups to have the longest axis _first_ - N.B. this has
+    # nothing to do with memory (and is the reversed order) - also make the
+    # "fast" direction slightly longer to allow nice divisors to make for a
+    # boxy-ish workgroup
+    index_dt(
+        queue, (1040, 512, 32), (26, 8, 1), _image, _mask, 512, 1028, 7, 3.0, _signal
+    )
+
+    signal = np.empty(shape=m.shape, dtype=m.dtype)
     cl.enqueue_copy(queue, signal, _signal)
 
     signal_image = rettilb(signal)
-
     plt.imshow(signal_image, cmap="Greys")
     plt.show()
 

@@ -3,91 +3,110 @@ __kernel void index_dt(const __global unsigned short *image,
                        const int width, const int knl_width,
                        const float sigma_s, __global unsigned char *signal) {
 
-  // pixel in global address space
-  int i = get_global_id(0);
-  int j = get_global_id(1);
+  // pixel in global address space - N.B. because reasons the work
+  // assignment is _not_ ordered in the same way as the memory.
+  int gid[3];
+  gid[0] = get_global_id(0); // pixel number
+  gid[1] = get_global_id(1); // row number
+  gid[2] = get_global_id(2); // module number
 
-  if (j >= width || i >= height) {
+  // hard coded for 32 modules at the moment FIXME get the true shape from
+  // the API - we do ask for work units off the edge though so this is legit
+  if (gid[2] >= 32 || gid[1] >= height || gid[0] >= width) {
     return;
   }
 
+  int lid[3], lsz[3];
+  lid[0] = get_local_id(0);
+  lid[1] = get_local_id(1);
+  lid[2] = get_local_id(2);
+
+  // lsz[2] should be 1
+  lsz[0] = get_local_size(0);
+  lsz[1] = get_local_size(1);
+  lsz[2] = get_local_size(2);
+
   int knl = (knl_width - 1) / 2;
 
-  // pixel in local address space
-  int k = get_local_id(0);
-  int l = get_local_id(1);
+  // 8+6 lines in local buffer TODO reshape to be squarer and pass in as arg
+  // each line is 26 pixels + 6 padding
+  __local unsigned short _image[448];
+  __local unsigned char _mask[448];
 
-  int nh = get_local_size(0);
-  int nw = get_local_size(1);
+  // loop variables - will always be consistent here that we have i, j, k where
+  // m is the module number, i is the row and j is the pixel number - in this
+  // address space I am working in global coordinates for the initial offset
+  // and then local coordinates for the actual calculation - nota bene.
 
-  // 10 lines in local buffer
-  __local unsigned short _image[1028 * 10];
-  __local unsigned char _mask[1028 * 10];
+  int ni = lsz[1] + 2 * knl;
+  int nj = lsz[0] + 2 * knl;
 
-  // TODO deal with module boundaries
-
-  if (k == l == 0) {
+  if (lid[0] == lid[1] == lid[2] == 0) {
     // it is my job to copy the data +/- knl_width size over from __global
-    for (int _i = 0; _i < nh + 2 * knl; i++) {
-      int row = i + _i - knl;
-      if (row < 0) {
-        for (int _j = 0; _j < width; _j++) {
-          _image[_i * width + _j] = 0;
-          _mask[_i * width + _j] = 0;
+    for (int i = 0; i < ni; i++) {
+      int row = gid[1] + i - knl;
+      if (row < 0 || row >= height) {
+        for (int j = 0; j < nj; j++) {
+          _image[row * nj + j] = 0;
+          _mask[row * nj + j] = 0;
         }
-      } else if (row >= height) {
-        for (int _j = 0; _j < width; _j++) {
-          _image[_i * width + _j] = 0;
-          _mask[_i * width + _j] = 0;
-        }
-      } else {
-        for (int _j = 0; _j < width; _j++) {
-          _image[_i * width + _j] = image[row * width + j];
-          _mask[_i * width + _j] = mask[row * width + j];
+        continue;
+      }
+      for (int j = 0; j < nj; j++) {
+        int pxl = gid[0] + j - knl;
+        if (pxl < 0 || pxl >= width) {
+          _image[row * nj + j] = 0;
+          _mask[row * nj + j] = 0;
+        } else {
+          int m = gid[2];
+          _image[row * nj + j] = image[m * width * height + row * width + pxl];
+          _mask[row * nj + j] = mask[m * width * height + row * width + pxl];
         }
       }
     }
   }
 
+  // synchronise threads so all have same view of local memory
   barrier(CLK_LOCAL_MEM_FENCE);
 
   int sum = 0;
   int sum2 = 0;
   int n = 0;
 
-  for (int _i = -knl; _i < knl + 1; _i++) {
-    if ((_i < 0) || (_i >= nh)) {
-      continue;
-    }
-    for (int _j = -knl; _j < knl + 1; _j++) {
-      if ((_j < 0) || (_j >= nw)) {
-        continue;
-      }
-      int _s = _image[_i * width + j];
-      int _m = _mask[_i * width + j];
-      sum += _s * _m;
-      sum2 += _s * _s * _m;
+  // now I am working with respect to lid i.e. +/- knl around lid in the
+  // local address space - because the local memory is padded this is
+  // guaranteed to be OK
+
+  for (int i = -knl; i < knl + 1; i++) {
+    for (int j = -knl; j < knl + 1; j++) {
+      int pxl = (lid[1] + i) * nj + lid[0] + j;
+      int _i = _image[pxl];
+      int _m = _mask[pxl];
+      sum += _i * _m;
+      sum2 += _i * _i * _m;
       n += _m;
     }
   }
 
+  int gpxl = gid[2] * width * height + gid[1] * width + gid[0];
+
   if (n < 2) {
-    signal[i * width + j] = 0;
+    signal[gpxl] = 0;
     return;
   }
 
   float mean = (float)sum / (float)n;
   float variance =
-      ((float)sum2 - ((float)sum * (float)sum / float(n))) / (float)n;
+      ((float)sum2 - ((float)sum * (float)sum / (float)n)) / (float)n;
 
   if (mean <= 0) {
-    signal[i * width + j] = 0;
+    signal[gpxl] = 0;
     return;
   }
 
   if ((variance / mean) > (1 + sigma_s * sqrt(2.0 / (n - 1.0)))) {
-    signal[i * width + j] = 1;
+    signal[gpxl] = 1;
   } else {
-    signal[i * width + j] = 0;
+    signal[gpxl] = 0;
   }
 }
