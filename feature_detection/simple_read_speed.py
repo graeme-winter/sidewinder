@@ -17,7 +17,7 @@ def simple():
         d = data(j)
     t1 = time.time()
 
-    print(f"Time / frame (s): {(t1 - t0) / nz:.3f}")
+    print(f"{nz} images took {(t1 - t0):.2f}s -> {nz / (t1 - t0):.1f}/s")
 
 
 simple()
