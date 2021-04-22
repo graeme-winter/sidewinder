@@ -1,5 +1,7 @@
 __kernel void index_dt(const __global unsigned short *image,
-                       const __global unsigned char *mask, const int height,
+                       const __global unsigned char *mask,
+                       __local unsigned short *_image,
+                       __local unsigned char *_mask, const int height,
                        const int width, const int knl_width,
                        const float sigma_s, __global unsigned char *signal) {
 
@@ -27,10 +29,6 @@ __kernel void index_dt(const __global unsigned short *image,
   lsz[2] = get_local_size(2);
 
   int knl = (knl_width - 1) / 2;
-
-  // 8+6 lines in local buffer: each line is 26 pixels + 6 padding
-  __local unsigned short _image[L_BLOCK];
-  __local unsigned char _mask[L_BLOCK];
 
   // loop variables - will always be consistent here that we have i, j, m where
   // m is the module number, i is the row and j is the pixel number - in this
@@ -68,16 +66,26 @@ __kernel void index_dt(const __global unsigned short *image,
   // synchronise threads so all have same view of local memory
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  float sum = 0;
-  float sum2 = 0;
-  float n = 0;
+  // local and global pixel locations for this worker
+  int gpxl = gid[2] * width * height + gid[1] * width + gid[0];
+  int lpxl = (lid[1] + knl) * nj + lid[0] + knl;
+
+  // if masked, cannot be signal
+  if (_mask[lpxl] == 0) {
+    signal[gpxl] = 0;
+    return;
+  }
+
+  float sum = 0.0;
+  float sum2 = 0.0;
+  float n = 0.0;
 
   // now I am working with respect to lid i.e. +/- knl around lid in the
   // local address space - because the local memory is padded this is
   // guaranteed to be OK
 
-  for (int i = -knl; i < knl + 1; i++) {
-    for (int j = -knl; j < knl + 1; j++) {
+  for (int i = 0; i < 2 * knl + 1; i++) {
+    for (int j = 0; j < 2 * knl + 1; j++) {
       int pxl = (lid[1] + i) * nj + lid[0] + j;
       int _i = _image[pxl];
       int _m = _mask[pxl];
@@ -87,25 +95,15 @@ __kernel void index_dt(const __global unsigned short *image,
     }
   }
 
-  int gpxl = gid[2] * width * height + gid[1] * width + gid[0];
-
-  if (n < 2) {
-    signal[gpxl] = 0;
-    return;
+  if ((n >= 2) && (sum > 0)) {
+    float dispersion = (sum2 - (sum * sum / n)) / sum;
+    if (dispersion > (1 + sigma_s * sqrt(2 / (n - 1)))) {
+      signal[gpxl] = 1;
+      return;
+    }
   }
 
-  float mean = sum / n;
-  float variance = (sum2 - (sum * sum / n)) / n;
+  signal[gpxl] = 0;
 
-  if (mean <= 0) {
-    signal[gpxl] = 0;
-    return;
-  }
-
-  if ((variance / mean) > (1 + sigma_s * sqrt(2.0 / (n - 1.0)))) {
-    signal[gpxl] = 1;
-  } else {
-    signal[gpxl] = 0;
-  }
   return;
 }
