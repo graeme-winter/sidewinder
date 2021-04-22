@@ -61,6 +61,8 @@ def main():
 
     nz, ny, nx = shape()
 
+    nz = 1
+    
     d = data(0)
 
     t0 = time.time()
@@ -106,5 +108,11 @@ def main():
 
     print(f"{nz} images took {(t1 - t0):.2f}s -> {nz / (t1 - t0):.1f}/s")
 
+    from matplotlib import pyplot as plt
+    signal_image = rettilb(signal)
+
+    plt.imshow(signal_image, cmap="Greys")
+    plt.show()
+    
 
 main()
