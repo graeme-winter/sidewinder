@@ -4,7 +4,7 @@ __kernel void index_dt(const __global unsigned short *image,
                        __local unsigned char *_mask, const int height,
                        const int width, const int knl_width,
                        const float sigma_s, const float sigma_b,
-		       __global unsigned char *signal) {
+                       __global unsigned char *signal) {
 
   // pixel in global address space - N.B. because reasons the work
   // assignment is _not_ ordered in the same way as the memory.
