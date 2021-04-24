@@ -3,7 +3,8 @@ __kernel void index_dt(const __global unsigned short *image,
                        __local unsigned short *_image,
                        __local unsigned char *_mask, const int height,
                        const int width, const int knl_width,
-                       const float sigma_s, __global unsigned char *signal) {
+                       const float sigma_s, const float sigma_b,
+		       __global unsigned char *signal) {
 
   // pixel in global address space - N.B. because reasons the work
   // assignment is _not_ ordered in the same way as the memory.
@@ -96,8 +97,11 @@ __kernel void index_dt(const __global unsigned short *image,
   }
 
   if ((n >= 2) && (sum > 0)) {
-    float dispersion = (sum2 - (sum * sum / n)) / sum;
-    if (dispersion > (1 + sigma_s * sqrt(2 / (n - 1)))) {
+    float n_disp = n * sum2 - sum * sum - sum * (n - 1);
+    float t_disp = sum * sigma_b * sqrt(2 / (n - 1));
+    float n_stng = n * _image[lpxl] - sum;
+    float t_stng = sigma_s * sqrt(n * sum);
+    if ((n_disp > t_disp) && (n_stng > t_stng)) {
       signal[gpxl] = 1;
       return;
     }
