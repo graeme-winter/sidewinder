@@ -98,7 +98,7 @@ __kernel void index_dt(const __global unsigned short *image,
 
   if ((n >= 2) && (sum > 0)) {
     float n_disp = n * sum2 - sum * sum - sum * (n - 1);
-    float t_disp = sum * sigma_b * sqrt(2 / (n - 1));
+    float t_disp = sum * sigma_b * sqrt(2 * (n - 1));
     float n_stng = n * _image[lpxl] - sum;
     float t_stng = sigma_s * sqrt(n * sum);
     if ((n_disp > t_disp) && (n_stng > t_stng)) {
