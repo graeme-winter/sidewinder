@@ -92,6 +92,7 @@ if __name__ == "__main__":
         t0 = time.time()
         for j in range(vf.get_shape()[0]):
             d = vf.data(j)
+            print(j, np.count_nonzero(d == 0xffff))
         t1 = time.time()
 
         print(f"Reading {vf.get_shape()[0]} frames took {(t1 - t0):.1f}s")
