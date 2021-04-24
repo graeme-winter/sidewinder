@@ -52,7 +52,18 @@ def main():
     index_dt = program.index_dt
 
     index_dt.set_scalar_arg_dtypes(
-        [None, None, None, None, np.int32, np.int32, np.int32, np.float32, None]
+        [
+            None,
+            None,
+            None,
+            None,
+            np.int32,
+            np.int32,
+            np.int32,
+            np.float32,
+            np.float32,
+            None,
+        ]
     )
 
     setup(filename)
@@ -97,7 +108,21 @@ def main():
         # for a boxy-ish workgroup
         work = (1040, 512, 32)
         group = (26, 8, 1)
-        evt = index_dt(queue, work, group, _image, _mask, _limage, _lmask, 512, 1028, 7, 3.0, _signal)
+        evt = index_dt(
+            queue,
+            work,
+            group,
+            _image,
+            _mask,
+            _limage,
+            _lmask,
+            512,
+            1028,
+            7,
+            6.0,
+            3.0,
+            _signal,
+        )
         evt.wait()
 
         cl.enqueue_copy(queue, signal, _signal)
@@ -106,6 +131,6 @@ def main():
 
     print(f"{nz} images took {(t1 - t0):.2f}s -> {nz / (t1 - t0):.1f}/s")
 
-    
+
 
 main()
