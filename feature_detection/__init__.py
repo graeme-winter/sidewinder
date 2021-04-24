@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+from matplotlib import pyplot as plt
 
 __hdf5 = None
 __data = None
@@ -98,6 +99,12 @@ def setup(filename):
     mask[tmp == 0] = 1
 
     __mask = blitter(mask)
+
+
+def plot(signal):
+    signal_image = rettilb(signal)
+    plt.imshow(signal_image, cmap="Greys")
+    plt.show()
 
 
 def data(frame):
