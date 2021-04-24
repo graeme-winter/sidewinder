@@ -127,6 +127,8 @@ def main():
 
         cl.enqueue_copy(queue, signal, _signal)
 
+        print(image, np.count_nonzero(signal))
+
     t1 = time.time()
 
     print(f"{nz} images took {(t1 - t0):.2f}s -> {nz / (t1 - t0):.1f}/s")
