@@ -58,7 +58,7 @@ __kernel void spot_finder(const __global unsigned short *image,
 
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  if ((gid[0] >= frames) && (gid[1] >= height) && (gid[2] >= width)) {
+  if ((gid[0] >= frames) || (gid[1] >= height) || (gid[2] >= width)) {
     return;
   }
 
@@ -68,14 +68,7 @@ __kernel void spot_finder(const __global unsigned short *image,
 
   // if masked, cannot be signal
   if (_mask[lpxl] == 0) {
-    signal[gpxl] = 255;
-    return;
-  } else {
-    if (_image[lpxl] < 256) {
-      signal[gpxl] = _image[lpxl];
-    } else {
-      signal[gpxl] = 255;
-    }
+    signal[gpxl] = 0;
     return;
   }
 
