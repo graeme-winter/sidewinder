@@ -61,7 +61,7 @@ def main():
         ]
     )
 
-    shape = (3070, 4090)
+    shape = (4362, 4148)
     size = shape[0] * shape[1]
 
     mem_in = np.random.randint(0, 256, size=size, dtype=np.uint16).reshape(shape)
@@ -78,7 +78,7 @@ def main():
     cl.enqueue_copy(queue, _mem_in, mem_in)
 
     # work must be a multiple of group size
-    group = (12, 16)
+    group = (16, 16)
     work = tuple(int(group[d] * np.ceil(shape[d] / group[d])) for d in (0, 1))
     print(f"{shape} -> {work}")
     evt = memcpy_2d(
