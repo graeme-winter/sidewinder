@@ -97,7 +97,7 @@ def main():
         ]
     )
 
-    shape = 65536
+    shape = 16 * 1024**2
 
     mem_in = np.random.randint(0, 256, size=shape, dtype=np.uint16)
 

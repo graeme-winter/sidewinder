@@ -62,7 +62,7 @@ def main():
         ]
     )
 
-    shape = (4, 1530, 2045)
+    shape = (32, 512, 1028)
     size = shape[0] * shape[1] * shape[2]
 
     mem_in = np.random.randint(0, 256, size=size, dtype=np.uint16).reshape(shape)
