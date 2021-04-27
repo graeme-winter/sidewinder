@@ -21,23 +21,23 @@ __kernel void memcpy_2d(const __global unsigned short *mem_in, const int height,
   lsz[1] = get_local_size(1);
 
   if (lid[0] == lid[1] == 0) {
-    for (int i = 0; i < lsz[1]; i++) {
-      for (int j = 0; j < lsz[0]; j++) {
-        if (((ggd[1] * lsz[1] + i) > height) ||
-            ((ggd[0] * lsz[0] + j) > width)) {
-          _mem[i * lsz[0] + j] = 0;
+    for (int i = 0; i < lsz[0]; i++) {
+      for (int j = 0; j < lsz[1]; j++) {
+        if (((ggd[0] * lsz[0] + i) > height) ||
+            ((ggd[1] * lsz[1] + j) > width)) {
+          _mem[i * lsz[1] + j] = 0;
           continue;
         }
-        _mem[i * lsz[0] + j] =
-            mem_in[(ggd[1] * lsz[1] + i) * width + (ggd[0] * lsz[0] + j)];
+        _mem[i * lsz[1] + j] =
+            mem_in[(ggd[0] * lsz[0] + i) * width + (ggd[1] * lsz[1] + j)];
       }
     }
   }
 
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  if ((gid[1] < height) && (gid[0] < width)) {
-    mem_out[gid[1] * width + gid[0]] = _mem[lid[1] * lsz[0] + lid[0]];
+  if ((gid[0] < height) && (gid[1] < width)) {
+    mem_out[gid[0] * width + gid[1]] = _mem[lid[0] * lsz[1] + lid[1]];
   }
 
   return;
