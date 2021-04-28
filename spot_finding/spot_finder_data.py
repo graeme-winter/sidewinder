@@ -103,7 +103,9 @@ def setup(filename):
 
 def plot(signal):
     signal_image = rettilb(signal)
-    plt.imshow(signal_image, cmap="Greys")
+    x0 = (MOD_FAST + GAP_FAST) * 2
+    y0 = (MOD_SLOW + GAP_SLOW) * 3
+    plt.imshow(signal_image[y0 : y0 + 512, x0 : x0 + 1028], cmap="Greys")
     plt.show()
 
 

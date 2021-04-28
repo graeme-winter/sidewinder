@@ -77,11 +77,9 @@ __kernel void spot_finder(const __global unsigned short *image,
   for (int j = 0; j < knl2; j++) {
     for (int k = 0; k < knl2; k++) {
       int pxl = (lid[1] + j) * nk + lid[2] + k;
-      float _i = _image[pxl];
-      float _m = _mask[pxl];
-      sum += _i * _m;
-      sum2 += _i * _i * _m;
-      n += _m;
+      sum += _image[pxl] * _mask[pxl];
+      sum2 += _image[pxl] * _image[pxl] * _mask[pxl];
+      n += _mask[pxl];
     }
   }
 

@@ -74,9 +74,10 @@ def main():
     group = (1, 16, 16)
     work = tuple(int(group[d] * np.ceil(data_shape[d] / group[d])) for d in (0, 1, 2))
 
-    print(f"{data_shape} -> {work}")
-
-    for i in (0,):
+    t0 = time.time()
+    n = 0
+    for i in range(nz):
+        n += 1
         image = data(i)
 
         cl.enqueue_copy(queue, _image, image)
@@ -98,7 +99,10 @@ def main():
 
         cl.enqueue_copy(queue, signal, _signal)
 
-    plot(signal)
+        print(i, np.count_nonzero(signal))
+
+    t1 = time.time()
+    print(f"Processing {n} images took {(t1 - t0):.1f}s")
 
 
 main()
