@@ -103,7 +103,7 @@ def setup(filename):
 
 def plot(signal):
     signal_image = rettilb(signal)
-    plt.imshow(signal_image, cmap="Greys")
+    plt.imshow(signal_image[:512, :1028], cmap="Greys")
     plt.show()
 
 

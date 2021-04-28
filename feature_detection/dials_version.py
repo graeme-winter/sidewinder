@@ -7,7 +7,7 @@ import iotbx.phil
 from dials.algorithms.spot_finding.factory import SpotFinderFactory
 from dials.algorithms.spot_finding.factory import phil_scope as spot_phil
 
-from __init__ import setup, mask, data, shape, rettilb
+from __init__ import setup, mask, data, shape, rettilb, plot
 
 
 def find_signal_pixels(mask, image):
@@ -18,7 +18,9 @@ def find_signal_pixels(mask, image):
     shape = mask.shape
     assert mask.shape == image.shape
 
-    spot_params = spot_phil.fetch(source=iotbx.phil.parse("min_spot_size=1 algorithm=dispersion")).extract()
+    spot_params = spot_phil.fetch(
+        source=iotbx.phil.parse("min_spot_size=1 algorithm=dispersion")
+    ).extract()
 
     signal = np.empty(shape, dtype=np.uint8)
     threshold_function = SpotFinderFactory.configure_threshold(spot_params)
@@ -42,6 +44,8 @@ def main():
     m = mask().reshape(32, 512, 1028)
 
     nz, ny, nx = shape()
+
+    nz = 10
 
     for image in range(nz):
         d = data(image).reshape(32, 512, 1028)
