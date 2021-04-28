@@ -1,11 +1,13 @@
 __kernel void index_dt(const __global unsigned short *image,
                        const __global unsigned char *mask,
-                       __local unsigned short *_image,
-                       __local unsigned char *_mask, const int height,
-                       const int width, const int knl_width,
+                       const int height,
+                       const int width, const int knl,
                        const float sigma_s, const float sigma_b,
                        __global unsigned char *signal) {
 
+  __local unsigned short _image[LOCAL_SIZE];
+  __local unsigned char _mask[LOCAL_SIZE];
+  
   // pixel in global address space - N.B. because reasons the work
   // assignment is _not_ ordered in the same way as the memory.
   int gid[3];
@@ -20,6 +22,8 @@ __kernel void index_dt(const __global unsigned short *image,
   }
 
   int lid[3], lsz[3];
+
+  // lid[2] should be 0
   lid[0] = get_local_id(0);
   lid[1] = get_local_id(1);
   lid[2] = get_local_id(2);
@@ -28,8 +32,6 @@ __kernel void index_dt(const __global unsigned short *image,
   lsz[0] = get_local_size(0);
   lsz[1] = get_local_size(1);
   lsz[2] = get_local_size(2);
-
-  int knl = (knl_width - 1) / 2;
 
   // loop variables - will always be consistent here that we have i, j, m where
   // m is the module number, i is the row and j is the pixel number - in this
@@ -40,7 +42,7 @@ __kernel void index_dt(const __global unsigned short *image,
   int nj = lsz[0] + 2 * knl;
 
   if (lid[0] == lid[1] == lid[2] == 0) {
-    // it is my job to copy the data +/- knl_width size over from __global
+    // it is my job to copy the data +/- knl size over from __global
     for (int i = 0; i < ni; i++) {
       int row = gid[1] + i - knl;
       if (row < 0 || row >= height) {
@@ -71,6 +73,11 @@ __kernel void index_dt(const __global unsigned short *image,
   int gpxl = gid[2] * width * height + gid[1] * width + gid[0];
   int lpxl = (lid[1] + knl) * nj + lid[0] + knl;
 
+  if (1 == 1) {
+    signal[gpxl] = _image[lpxl] % 256;
+    return;
+  }
+
   // if masked, cannot be signal
   if (_mask[lpxl] == 0) {
     signal[gpxl] = 0;
@@ -96,7 +103,7 @@ __kernel void index_dt(const __global unsigned short *image,
     }
   }
 
-  if ((n >= 2) && (sum > 0)) {
+  if ((n >= 2) && (sum >= 0)) {
     float n_disp = n * sum2 - sum * sum - sum * (n - 1);
     float t_disp = sum * sigma_b * sqrt(2 * (n - 1));
     float n_stng = n * _image[lpxl] - sum;
