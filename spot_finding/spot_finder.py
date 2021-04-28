@@ -25,7 +25,8 @@ def main():
     context = cl.Context(devices=[devices[device]])
     queue = cl.CommandQueue(context)
 
-    LOCAL = str((16 + 6 + 1) ** 2)
+    # 16 box + 7 pixels around
+    LOCAL = str((16 + 7) ** 2)
 
     cl_text = open("spot_finder.cl", "r").read().replace("LOCAL_SIZE", LOCAL)
     program = cl.Program(context, cl_text).build()
@@ -98,8 +99,8 @@ def main():
         evt.wait()
 
         cl.enqueue_copy(queue, signal, _signal)
-
-        print(i, np.count_nonzero(signal))
+        print(np.sum(image), np.sum(signal))
+        print(np.max(image), np.max(signal))
 
     t1 = time.time()
     print(f"Processing {n} images took {(t1 - t0):.1f}s")
