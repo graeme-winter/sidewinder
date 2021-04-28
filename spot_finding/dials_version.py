@@ -20,6 +20,7 @@ spotfinder {
 }
 """
 
+
 def find_signal_pixels(mask, image):
     """Mask: 2D array of unsigned char: if 0 -> invalid, if 1 -> valid,
     image: stack of 32 modules, so 3D numpy array of unsigned short. Returns

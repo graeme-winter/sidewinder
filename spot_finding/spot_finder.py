@@ -99,8 +99,7 @@ def main():
         evt.wait()
 
         cl.enqueue_copy(queue, signal, _signal)
-        print(np.sum(image), np.sum(signal))
-        print(np.max(image), np.max(signal))
+        print(i, np.count_nonzero(signal))
 
     t1 = time.time()
     print(f"Processing {n} images took {(t1 - t0):.1f}s")
