@@ -9,6 +9,16 @@ from dials.algorithms.spot_finding.factory import phil_scope as spot_phil
 
 from spot_finder_data import setup, mask, data, shape, rettilb, plot
 
+PHIL_SETTINGS = """
+spotfinder {
+  filter {
+    min_spot_size = 1
+  }
+  threshold {
+    algorithm = *dispersion
+  }
+}
+"""
 
 def find_signal_pixels(mask, image):
     """Mask: 2D array of unsigned char: if 0 -> invalid, if 1 -> valid,
