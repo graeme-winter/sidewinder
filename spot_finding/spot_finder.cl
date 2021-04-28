@@ -1,6 +1,6 @@
 __kernel void spot_finder(const __global unsigned short *image,
                           const __global unsigned char *mask, const int frames,
-                          const int height, const int width, const int knl0,
+                          const int height, const int width, const int knl,
                           const float sigma_s, const float sigma_b,
                           __global unsigned char *signal) {
 
@@ -8,8 +8,6 @@ __kernel void spot_finder(const __global unsigned short *image,
   __local unsigned char _mask[LOCAL_SIZE];
 
   int gid[3], ggd[3];
-
-  int knl = 0;
 
   gid[0] = get_global_id(0);
   gid[1] = get_global_id(1);
@@ -29,7 +27,7 @@ __kernel void spot_finder(const __global unsigned short *image,
   lsz[1] = get_local_size(1);
   lsz[2] = get_local_size(2);
 
-  int knl2 = 0; // 2 * knl + 1;
+  int knl2 = 2 * knl + 1;
   int nj = lsz[1] + knl2;
   int nk = lsz[2] + knl2;
 
@@ -44,8 +42,8 @@ __kernel void spot_finder(const __global unsigned short *image,
         int _k = k - knl;
         if (((off[1] + _j) < 0) || ((off[2] + _k) < 0) ||
             ((off[1] + _j) >= height) || ((off[2] + _k) >= width)) {
-          _image[j * nk + k] = 127;
-          _mask[j * nk + k] = 1;
+          _image[j * nk + k] = 0;
+          _mask[j * nk + k] = 0;
         } else {
           _image[j * nk + k] = image[(off[0] * height * width) +
                                      (off[1] + _j) * width + (off[2] + _k)];
@@ -76,11 +74,11 @@ __kernel void spot_finder(const __global unsigned short *image,
   float sum2 = 0.0;
   float n = 0.0;
 
-  for (int j = -knl; j < knl + 1; j++) {
-    for (int k = -knl; k < knl + 1; k++) {
-      int pxl = (lid[1] + j + knl) * (lsz[2] + 2 * knl + 1) + lid[0] + k + knl;
-      int _i = _image[pxl];
-      int _m = _mask[pxl];
+  for (int j = 0; j < knl2; j++) {
+    for (int k = 0; k < knl2; k++) {
+      int pxl = (lid[1] + j) * nk + lid[2] + k;
+      float _i = _image[pxl];
+      float _m = _mask[pxl];
       sum += _i * _m;
       sum2 += _i * _i * _m;
       n += _m;
