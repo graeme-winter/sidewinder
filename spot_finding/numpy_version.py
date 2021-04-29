@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 from numba import jit
 
-from __init__ import setup, mask, data, shape, rettilb
+from spot_finder_data import setup, mask, data, shape, rettilb
 
 
 def kernel_summation(data, knl=7):
@@ -56,6 +56,7 @@ def thresholded_dispersion(image, mask, sigma_s=3, knl=7):
         mean = isum / nsum
         variance = (isum2 - isum ** 2 / nsum) / nsum
 
+        # TODO add the intensity of this pixel is over the threshold calc too
         signal[module * ny : module * ny + ny, :][
             (variance / mean) > 1 + sigma_s * np.sqrt(2 / (nsum - 1))
         ] = 1
@@ -72,16 +73,14 @@ def simple():
 
     nz, ny, nx = shape()
 
-    d = data(0)
-
     t0 = time.time()
-    signal = thresholded_dispersion(d, m)
+    for j in range(nz):
+        d = data(j)
+        signal = thresholded_dispersion(d, m)
+        print(f"{j} {np.count_nonzero(signal)}")
     t1 = time.time()
+    print(f"Processing {nz} images took {(t1 - t0):.1f}s")
 
-    signal_image = rettilb(signal)
-
-    plt.imshow(signal_image, cmap="Greys")
-    plt.show()
 
 
 simple()
