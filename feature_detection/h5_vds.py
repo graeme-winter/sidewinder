@@ -1,4 +1,3 @@
-import array
 import os
 import time
 
@@ -15,15 +14,8 @@ class h5_data_file:
         self.dset = self.file["/data"]
         self.frames = frames
         self.offset = offset
-        self.chunk_sizes = array.array(
-            "L",
-            [
-                self.dset.id.get_chunk_info_by_coord((j, 0, 0)).size
-                for j in range(frames)
-            ],
-        )
-        for c in self.chunk_sizes:
-            assert c > 0
+        for j in range(frames):
+            assert self.dset.id.get_chunk_info_by_coord((j, 0, 0)).size > 0
 
 
 class vds_facade:
