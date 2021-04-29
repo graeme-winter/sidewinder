@@ -11,22 +11,29 @@ import pyopencl as cl
 
 from spot_finder_data import setup, mask, data, shape, rettilb, plot
 from spot_finder_cl import get_devices, device_help
+from spot_finder_config import get_config
 
 
 def main():
-    if len(sys.argv) != 3:
-        device_help()
+    if len(sys.argv) < 2:
+        print(f"{sys.argv[0]} /path/to/data.nxs")
         sys.exit(1)
 
     filename = sys.argv[1]
-    device = int(sys.argv[2])
+
+    config = get_config()
+    gpus = tuple(map(int, config["devices"].split(",")))
 
     devices = get_devices()
-    context = cl.Context(devices=[devices[device]])
+    context = cl.Context(devices=[devices[gpus[0]]])
     queue = cl.CommandQueue(context)
 
-    # 16 box + 7 pixels around
-    LOCAL = str((16 + 7) ** 2)
+    # TODO verify that there is enough local memory for this size of work group
+    # TODO verify that this size of work group is legal for this device
+    local_work = tuple(map(int, config["work"].split(",")))
+
+    # work box + 7 pixels around
+    LOCAL = str((local_work[0] + 7) * (local_work[1] + 7))
 
     cl_text = open("spot_finder.cl", "r").read().replace("LOCAL_SIZE", LOCAL)
     program = cl.Program(context, cl_text).build()
@@ -72,7 +79,7 @@ def main():
     # likewise output buffer
     signal = np.zeros(shape=m.shape, dtype=m.dtype)
 
-    group = (1, 16, 16)
+    group = (1, local_work[0], local_work[1])
     work = tuple(int(group[d] * np.ceil(data_shape[d] / group[d])) for d in (0, 1, 2))
 
     t0 = time.time()
