@@ -63,21 +63,30 @@ def main():
 
     d = data(0)
 
-    _image = cl.Buffer(
-        context, cl.mem_flags.READ_ONLY, d.size * np.dtype(d.dtype).itemsize
-    )
     _mask = cl.Buffer(
         context, cl.mem_flags.READ_ONLY, m.size * np.dtype(m.dtype).itemsize
-    )
-    _signal = cl.Buffer(
-        context, cl.mem_flags.WRITE_ONLY, m.size * np.dtype(m.dtype).itemsize
     )
 
     # mask same for all images -> only copy the once
     cl.enqueue_copy(queue, _mask, m)
 
+    _image0 = cl.Buffer(
+        context, cl.mem_flags.READ_ONLY, d.size * np.dtype(d.dtype).itemsize
+    )
+    _signal0 = cl.Buffer(
+        context, cl.mem_flags.WRITE_ONLY, m.size * np.dtype(m.dtype).itemsize
+    )
+
+    _image1 = cl.Buffer(
+        context, cl.mem_flags.READ_ONLY, d.size * np.dtype(d.dtype).itemsize
+    )
+    _signal1 = cl.Buffer(
+        context, cl.mem_flags.WRITE_ONLY, m.size * np.dtype(m.dtype).itemsize
+    )
+
     # likewise output buffer
-    signal = np.zeros(shape=m.shape, dtype=m.dtype)
+    signal0 = np.zeros(shape=m.shape, dtype=m.dtype)
+    signal1 = np.zeros(shape=m.shape, dtype=m.dtype)
 
     bad = np.zeros(shape=d.shape, dtype=d.dtype)
 
@@ -86,16 +95,15 @@ def main():
 
     t0 = time.time()
     n = 0
-    for i in range(nz):
+    for i in range(0, nz, 2):
         n += 1
-        image = data(i)
-
-        cl.enqueue_copy(queue, _image, image)
-        evt = spot_finder(
+        cl.enqueue_copy(queue, _image0, data(i))
+        cl.enqueue_copy(queue, _image1, data(i + 1))
+        evt0 = spot_finder(
             queue,
             work,
             group,
-            _image,
+            _image0,
             _mask,
             data_shape[0],
             data_shape[1],
@@ -103,12 +111,29 @@ def main():
             3,
             3.0,
             6.0,
-            _signal,
+            _signal0,
         )
-        evt.wait()
+        evt1 = spot_finder(
+            queue,
+            work,
+            group,
+            _image1,
+            _mask,
+            data_shape[0],
+            data_shape[1],
+            data_shape[2],
+            3,
+            3.0,
+            6.0,
+            _signal1,
+        )
+        evt0.wait()
+        evt1.wait()
 
-        cl.enqueue_copy(queue, signal, _signal)
-        bad += signal
+        cl.enqueue_copy(queue, signal0, _signal0)
+        cl.enqueue_copy(queue, signal1, _signal1)
+        bad += signal0
+        bad += signal1
 
     t1 = time.time()
 
