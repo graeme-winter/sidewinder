@@ -111,11 +111,12 @@ def main():
         bad += signal
 
     t1 = time.time()
+
     print(f"Processing {n} images took {(t1 - t0):.1f}s")
     print(f"Found {np.count_nonzero(bad > n // 4)} bad pixels")
 
     with open(sys.argv[2], "w") as fout:
-        bad = rettilb(bad)
+        bad = rettilb(bad > n // 4)
         bad[bad == -1] = 0
         bad = np.nonzero(bad)
 
