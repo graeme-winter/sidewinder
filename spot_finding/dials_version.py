@@ -29,9 +29,7 @@ def find_signal_pixels(mask, image):
     shape = mask.shape
     assert mask.shape == image.shape
 
-    spot_params = spot_phil.fetch(
-        source=iotbx.phil.parse(PHIL_SETTINGS)
-    ).extract()
+    spot_params = spot_phil.fetch(source=iotbx.phil.parse(PHIL_SETTINGS)).extract()
 
     signal = np.empty(shape, dtype=np.uint8)
     threshold_function = SpotFinderFactory.configure_threshold(spot_params)
