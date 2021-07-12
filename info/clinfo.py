@@ -5,8 +5,6 @@ import math
 import numpy as np
 import pyopencl as cl
 
-from __init__ import setup, mask, data, shape, rettilb
-
 
 def get_devices():
     result = []
